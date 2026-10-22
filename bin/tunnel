@@ -1,0 +1,9 @@
+#!/bin/sh
+# Exposes the local HTTPS dev server through a Cloudflare quick tunnel (no account needed).
+# Prints a random https://….trycloudflare.com URL. The origin certificate is verified
+# against the local mkcert CA.
+set -eu
+
+exec cloudflared tunnel --no-autoupdate \
+  --url "https://localhost:${PORT:-4000}" \
+  --origin-ca-pool "$(mkcert -CAROOT)/rootCA.pem"
