@@ -1,5 +1,7 @@
 # Let It Crash — Code BEAM companion
 
+![beam me up!](./assets/Gemini_Generated_Image_lts1dylts1dylts1.jpg)
+
 Bingo, a supervisor tree of attendees, an excuse generator and a live crash meter.
 
 Design and implementation plan: [`docs/plan.md`](docs/plan.md).
