@@ -41,6 +41,23 @@ defmodule LetItCrashWeb.ExcuseLive do
     {:noreply, push_patch(socket, to: random_path("excuse"))}
   end
 
+  # The seed must be picked when the user asks for a new one: a random path computed in
+  # render/1 is only re-evaluated when its assigns change, so it would go stale.
+  @impl true
+  def handle_event("another", %{"kind" => kind}, socket) when is_map_key(@kinds, kind) do
+    seed = fresh_seed(Map.fetch!(@kinds, kind), socket.assigns.text)
+    {:noreply, push_patch(socket, to: ~p"/excuses/#{kind}/#{seed}")}
+  end
+
+  # Different seeds can produce the same text; re-roll so "Another one" visibly changes.
+  defp fresh_seed(kind, current_text) do
+    seed = Excuses.random_seed()
+
+    if Excuses.generate(kind, seed) == current_text,
+      do: fresh_seed(kind, current_text),
+      else: seed
+  end
+
   defp random_path(kind), do: ~p"/excuses/#{kind}/#{Excuses.random_seed()}"
 
   @impl true
@@ -53,15 +70,18 @@ defmodule LetItCrashWeb.ExcuseLive do
       </.header>
 
       <div role="tablist" class="tabs tabs-box">
-        <.link
+        <button
           :for={{kind, label} <- @tabs}
           id={"tab-#{kind}"}
+          type="button"
           role="tab"
-          patch={random_path(kind)}
+          aria-selected={to_string(@kind == kind)}
+          phx-click="another"
+          phx-value-kind={kind}
           class={["tab", @kind == kind && "tab-active"]}
         >
           {label}
-        </.link>
+        </button>
       </div>
 
       <blockquote
@@ -73,7 +93,9 @@ defmodule LetItCrashWeb.ExcuseLive do
       </blockquote>
 
       <div :if={@kind} class="flex flex-wrap items-center gap-2">
-        <.button id="another-btn" patch={random_path(@kind)} variant="primary">Another one</.button>
+        <.button id="another-btn" phx-click="another" phx-value-kind={@kind} variant="primary">
+          Another one
+        </.button>
         <.button id="copy-btn" phx-click={JS.dispatch("phx:copy", to: "#permalink")}>
           Copy link
         </.button>
