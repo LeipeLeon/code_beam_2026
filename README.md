@@ -6,6 +6,9 @@ Bingo, a supervisor tree of attendees, an excuse generator and a live crash mete
 
 Design and implementation plan: [`docs/plan.md`](docs/plan.md).
 
+> **Vibecoded** with omp and cmux: an AI coding agent wrote the code from a short prompt, a few
+> multiple-choice questions and a stream of follow-up requests. See [How this was built](#how-this-was-built).
+
 ## Features
 
 ### Join and home
@@ -64,6 +67,51 @@ Password-protected talk schedule management at `/admin/talks`.
 Admin: [`/admin/talks`](https://localhost:4000/admin/talks) (basic auth, dev: `admin` / `letitcrash`;
 prod: `ADMIN_USER` / `ADMIN_PASSWORD`). Talk times are wall-clock times in the conference time zone
 (`:conference_time_zone`, default `Europe/Berlin`).
+
+## How this was built
+
+This project was vibecoded with [omp](https://github.com/can1357/oh-my-pi) (a coding agent) running inside
+[cmux](https://github.com/manaflow-ai/cmux) (a macOS terminal built for AI coding agents; its built-in browser
+was used for the end-to-end checks and the screenshots above). The agent planned, wrote, ran and
+verified the code; a human picked options and steered.
+
+### Original prompt
+
+> we want a quirky companion app for a conference. it must be funny! do you have any suggestions?
+
+The project directory was called `code_beam`, so the agent assumed the conference was
+[Code BEAM](https://codebeameurope.com/) (Erlang/Elixir) and leaned the jokes on BEAM concepts.
+
+### Questions the agent asked
+
+Chosen answers are in **bold**.
+
+1. **Which funny features should the companion app have?** (pick any)
+   - **Let It Crash Bingo**: talk bingo card with BEAM clichés ("hot code reload", "9 nines", "WhatsApp", "it's just a GenServer"). Shout BINGO → live leaderboard.
+   - **Supervisor Tree of Attendees**: each attendee is a "process"; you "link" by scanning badges. Live visual tree. Leaving early = "process exited :normal".
+   - Mailbox Messaging: send anonymous messages to any attendee's "mailbox". Messages may arrive out of order on purpose; unread count shown as "mailbox overflow" warnings.
+   - **Excuse / Hallway Generator**: generates fake-profound BEAM wisdom and excuses to skip a talk ("my supervisor restarted me").
+   - **Live Crash Meter**: attendees press "crash" when a live demo fails; global meter + "restart strategy" animations. Swag for the most crashed speaker.
+2. **What should it be built with?**
+   - **Phoenix LiveView**: Elixir, fits the conference, real-time features (bingo, crash meter) come almost free via PubSub. Mobile-web, no app store.
+   - Phoenix API + mobile app: native feel, but app-store review timeline and much more work.
+   - Static web app: cheapest hosting; no real-time/multi-user features.
+3. **Persistence / identity?**
+   - **Postgres + nickname login**: pick a nickname, magic cookie session; no passwords. Standard Phoenix setup.
+   - In-memory only (ETS): zero infra, state lost on restart — on-brand "let it crash", but leaderboards reset.
+   - Postgres + email magic link: real identities, needs email delivery setup.
+4. **To award "most crashed speaker" and rank bingo per talk, the app needs the talk schedule. How should talks get in?**
+   - **Seed file + admin page**: talks (title, speaker, room, start/end) in `priv/repo/seeds.exs` plus a password-protected `/admin` page to add/edit. Crash presses attach to the talk currently running in your selected room.
+   - No talks at all: crash meter is global only, no speaker leaderboard. Simplest.
+   - Import from a schedule URL/JSON: needs the actual schedule feed format; you'd have to provide it.
+5. **Deployment target for this plan?**
+   - **Local dev only for now**: plan ends with a working app on localhost + Postgres in Docker; deploy later.
+   - Fly.io: adds fly launch config, Fly Postgres, release setup.
+   - Docker image (any host): adds a Phoenix release Dockerfile; you host it.
+
+From those answers the agent wrote [`docs/plan.md`](docs/plan.md). After it was approved, the build
+session implemented it. Follow-up requests in that session added HTTPS, a public tunnel, these
+screenshots and a more inclusive demo cast, and fixed bugs found along the way.
 
 ## Learn more
 
