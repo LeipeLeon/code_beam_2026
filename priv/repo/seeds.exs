@@ -37,10 +37,10 @@ if Repo.aggregate(Talk, :count) == 0 do
 end
 
 if Repo.aggregate(Attendee, :count) == 0 do
-  {:ok, robert, _token} = Attendees.register("Robert the Supervisor")
-  {:ok, jose, _token} = Attendees.register("José-ish")
+  {:ok, supervisor, _token} = Attendees.register("Sofía the Supervisor")
+  {:ok, worker, _token} = Attendees.register("Wei the Worker")
 
-  jose
-  |> Ecto.Changeset.change(supervisor_id: robert.id)
+  worker
+  |> Ecto.Changeset.change(supervisor_id: supervisor.id)
   |> Repo.update!()
 end

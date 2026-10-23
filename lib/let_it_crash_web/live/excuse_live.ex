@@ -4,6 +4,7 @@ defmodule LetItCrashWeb.ExcuseLive do
   alias LetItCrash.Excuses
 
   @tabs [{"excuse", "Excuse to skip a talk"}, {"wisdom", "Hallway wisdom"}]
+  @kinds %{"excuse" => :excuse, "wisdom" => :wisdom}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -20,14 +21,14 @@ defmodule LetItCrashWeb.ExcuseLive do
 
   @impl true
   def handle_params(%{"kind" => kind, "seed" => seed}, uri, socket)
-      when kind in ["excuse", "wisdom"] do
+      when is_map_key(@kinds, kind) do
     case Integer.parse(seed) do
       {seed, ""} when seed > 0 ->
         {:noreply,
          assign(socket,
            kind: kind,
            seed: seed,
-           text: Excuses.generate(String.to_existing_atom(kind), seed),
+           text: Excuses.generate(Map.fetch!(@kinds, kind), seed),
            permalink: LetItCrashWeb.RequestURL.build(uri, ~p"/excuses/#{kind}/#{seed}")
          )}
 
