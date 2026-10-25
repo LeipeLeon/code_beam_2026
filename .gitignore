@@ -38,3 +38,6 @@ npm-debug.log
 
 # Local dev TLS certificates (mkcert).
 /priv/cert/
+
+# Local compose environment (SECRET_KEY_BASE etc.)
+/.env

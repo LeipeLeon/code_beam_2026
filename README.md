@@ -55,7 +55,7 @@ Password-protected talk schedule management at `/admin/talks`.
 
 ## Running locally
 
-* `docker compose up -d` starts Postgres 18 on host port 5433
+* `docker compose up -d db` starts Postgres 18 on host port 5433
 * `mkcert -install && mkdir -p priv/cert && mkcert -cert-file priv/cert/localhost.pem -key-file priv/cert/localhost-key.pem localhost 127.0.0.1 ::1`
   creates the locally-trusted certificate dev serves HTTPS with (once per machine; `priv/cert/` is gitignored)
 * `mix setup` installs deps, creates/migrates the DB and seeds placeholder talks
@@ -67,6 +67,40 @@ Password-protected talk schedule management at `/admin/talks`.
 Admin: [`/admin/talks`](https://localhost:4000/admin/talks) (basic auth, dev: `admin` / `letitcrash`;
 prod: `ADMIN_USER` / `ADMIN_PASSWORD`). Talk times are wall-clock times in the conference time zone
 (`:conference_time_zone`, default `Europe/Berlin`).
+
+### Everything in Docker
+
+To run the app itself in a container (production release, plain HTTP), no Elixir needed:
+
+```sh
+echo "SECRET_KEY_BASE=$(openssl rand -base64 48)" > .env   # once; .env is gitignored
+docker compose up -d --build
+```
+
+Then open [`http://localhost:4001`](http://localhost:4001). On start the container creates the
+`let_it_crash_prod` database, migrates and seeds it (safe to repeat). Admin credentials default to
+`admin` / `letitcrash`; set `ADMIN_USER` / `ADMIN_PASSWORD` in `.env` to change them.
+
+#### Advertise on the LAN
+
+To let phones and laptops on the same Wi-Fi open the container app at `http://foo.local:4001`:
+
+```sh
+docker compose up -d --build
+bin/advertise   # keep it running; Ctrl-C withdraws the names
+```
+
+`bin/advertise` registers each name in `MDNS_NAMES` (space-separated, default `foo.local bar.local`)
+with the macOS mDNS responder, pointing at `HOST_IP` (default: the address of `en0`) and port 4001.
+The app reads the same `MDNS_NAMES`, so set it in `.env` to change both. It's a host-side script
+because an mDNS sidecar in Docker doesn't work on macOS: with OrbStack, Avahi on the VM's host
+network was only answered on the Mac's VM bridge (`bridge100`), never on `en0`.
+
+- `HOST_IP` is fixed at start; re-run `bin/advertise` after switching networks.
+- Venue Wi-Fi with client isolation, or networks that filter multicast, block mDNS. Use `mix tunnel`
+  there instead.
+- The app redirects to HTTPS for every host except localhost and the names in `MDNS_NAMES`, which is
+  why those names are served over plain HTTP.
 
 ## How this was built
 
